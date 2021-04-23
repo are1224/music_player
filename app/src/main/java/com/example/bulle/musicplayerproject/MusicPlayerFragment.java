@@ -1,7 +1,9 @@
 package com.example.bulle.musicplayerproject;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -34,12 +36,16 @@ public class MusicPlayerFragment extends Fragment{
 
     private ProgressSettingTask progressSettingTask;
 
-    private boolean isPaused = false;
+    private IntentFilter musicPlayerFilter;
+
+    private String MUSIC_PLAYER_STOP = "MUSIC_PLAYER_STOP";
+    private String MUSIC_PLAYER_START = "MUSIC_PLAYER_START";
 
     interface OnMusicServiceListener{
         MusicService getMusciService();
         void setMusicState(boolean state);
         boolean getMusicState();
+        void setMusicPlayerReceiver(BroadcastReceiver musicPlayerReceiver);
     }
 
     private OnMusicServiceListener mServiceListener;
@@ -51,6 +57,13 @@ public class MusicPlayerFragment extends Fragment{
         try {
             mServiceListener = (OnMusicServiceListener) context;
             mService = mServiceListener.getMusciService();
+
+            musicPlayerFilter = new IntentFilter();
+            musicPlayerFilter.addAction(MUSIC_PLAYER_START);
+            musicPlayerFilter.addAction(MUSIC_PLAYER_STOP);
+
+            getContext().registerReceiver(musicPlayerReceiver, musicPlayerFilter);
+            mServiceListener.setMusicPlayerReceiver(musicPlayerReceiver);
         } catch (ClassCastException e) {
             throw new ClassCastException(context.toString() + " must implement OnMusicSelectedListener");
         }
@@ -95,6 +108,11 @@ public class MusicPlayerFragment extends Fragment{
                         int changePosition = seekBar.getProgress();
                         mService.moveAndStart(changePosition);
                         start_progress_seek_bar(changePosition);
+
+                        if (stop_button.getVisibility() == View.GONE){
+                            play_button.setVisibility(View.INVISIBLE);
+                            stop_button.setVisibility(View.VISIBLE);
+                        }
                     }
                 }
             });
@@ -131,7 +149,6 @@ public class MusicPlayerFragment extends Fragment{
             stop_button.setVisibility(View.GONE);
             play_button.setVisibility(View.VISIBLE);
 
-            isPaused = true;
         }
     }
 
@@ -146,8 +163,9 @@ public class MusicPlayerFragment extends Fragment{
             public void onClick(View view){
 
                 mServiceListener.setMusicState(true);
+                mService.setSongPosition(position);
 
-                if (isPaused == false) {
+                if (mService.getIsPaused() == false || (mService.getSongId() != songList.get(position).getMusicId())) {
                     if (progressSettingTask != null && !progressSettingTask.isCancelled()) {
                         progressSettingTask.cancel(true);
                     }
@@ -163,7 +181,6 @@ public class MusicPlayerFragment extends Fragment{
                 }else{
                     mService.moveAndStart(mService.getCurrentMusicTime());
                     start_progress_seek_bar(mService.getCurrentMusicTime());
-                    isPaused = false;
                 }
 
                 play_button.setVisibility(View.INVISIBLE);
@@ -188,6 +205,7 @@ public class MusicPlayerFragment extends Fragment{
                 }else{
                     position -= 1;
                 }
+                mService.setSongPosition(position);
 
                 player_music_title.setText(songList.get(position).getMusicTitle());
 
@@ -195,6 +213,12 @@ public class MusicPlayerFragment extends Fragment{
                 total_second = Integer.valueOf(duration);
                 music_seekBar.setMax(total_second);
                 mService.startMusic(songList.get(position).getMusicId());
+
+                if (stop_button.getVisibility() == View.GONE){
+                    play_button.setVisibility(View.INVISIBLE);
+                    stop_button.setVisibility(View.VISIBLE);
+                }
+
                 start_progress_seek_bar(0);
             }
         });
@@ -216,6 +240,8 @@ public class MusicPlayerFragment extends Fragment{
                     position += 1;
                 }
 
+                mService.setSongPosition(position);
+
                 player_music_title.setText(songList.get(position).getMusicTitle());
 
                 duration = songList.get(position).getDuration();
@@ -223,6 +249,12 @@ public class MusicPlayerFragment extends Fragment{
                 music_seekBar.setMax(total_second);
 
                 mService.startMusic(songList.get(position).getMusicId());
+
+                if (stop_button.getVisibility() == View.GONE){
+                    play_button.setVisibility(View.INVISIBLE);
+                    stop_button.setVisibility(View.VISIBLE);
+                }
+
                 start_progress_seek_bar(0);
             }
         });
@@ -234,7 +266,6 @@ public class MusicPlayerFragment extends Fragment{
                 mServiceListener.setMusicState(false);
 
                 mService.pauseMusic();
-                isPaused = true;
 
                 if (progressSettingTask != null && !progressSettingTask.isCancelled()) {
                     progressSettingTask.cancel(true);
@@ -309,4 +340,26 @@ public class MusicPlayerFragment extends Fragment{
         }
         return null;
     }
+
+    BroadcastReceiver musicPlayerReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+
+            if(action.equals(MUSIC_PLAYER_START)){
+
+            }else if(action.equals(MUSIC_PLAYER_STOP)){
+                Log.d("music receiver worked", "이게 진짜로 작동을 하네!");
+                if (progressSettingTask != null && !progressSettingTask.isCancelled()) {
+                    progressSettingTask.cancel(true);
+                }
+                music_seekBar.setProgress(0);
+
+                if (play_button.getVisibility() == View.INVISIBLE){
+                    play_button.setVisibility(View.VISIBLE);
+                    stop_button.setVisibility(View.GONE);
+                }
+            }
+        }
+    };
 }

@@ -1,6 +1,7 @@
 package com.example.bulle.musicplayerproject;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -32,6 +33,8 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
 
     private boolean music_play_or_stop = true;
 
+    private BroadcastReceiver musicPlayerReceiver;
+
     public MainHandler mainHandler = new MainHandler();
 
     @Override
@@ -58,6 +61,9 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
     @Override
     protected void onDestroy(){
         super.onDestroy();
+
+        unregisterReceiver(musicPlayerReceiver);
+
         //서비스 연결 해제
         if(mBound){
             unbindService(mConnection);
@@ -72,6 +78,9 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
             MusicService.MyBinder binder = (MusicService.MyBinder) service;
             mService = binder.getService();
             mBound = true;
+            if (musicList != null) {
+                mService.setSongList(musicList);
+            }
         }
 
         @Override
@@ -153,6 +162,11 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
     @Override
     public boolean getMusicState() {
         return music_play_or_stop;
+    }
+
+    @Override
+    public void setMusicPlayerReceiver(BroadcastReceiver musicPlayerReceiver) {
+        this.musicPlayerReceiver = musicPlayerReceiver;
     }
 
     private class MainHandler extends Handler {

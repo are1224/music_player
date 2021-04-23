@@ -145,10 +145,6 @@ public class MusicListFragment extends Fragment implements MyRecyclerAdapter.MyR
         Log.d("song touched", songList.get(position).getMusicTitle() + ", " + songList.get(position).getDuration());
         mListener.onMusicSelected(songList, position);
         songList = null;
-//        Intent intent = new Intent(getContext(), MusicService.class);
-//        intent.putParcelableArrayListExtra("list", songList);
-//        intent.putExtra("position", position);
-//        getContext().startService(intent);
     }
 
     public void setStopService(View view){

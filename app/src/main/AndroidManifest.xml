@@ -23,7 +23,11 @@
         <service
             android:name=".MusicService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.bulle.musicplayerproject.action.ACTION_MUSIC_BROADCAST"/>
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>
