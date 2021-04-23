@@ -90,7 +90,7 @@ public class MusicListFragment extends Fragment implements MyRecyclerAdapter.MyR
         protected Void doInBackground(Void... voids) {
 
 
-            String[] projection = {MediaStore.Audio.Media.IS_MUSIC, MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE};
+            String[] projection = {MediaStore.Audio.Media.IS_MUSIC, MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.DURATION};
             Cursor cursor = getContext().getContentResolver().query(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                     projection,
@@ -109,6 +109,7 @@ public class MusicListFragment extends Fragment implements MyRecyclerAdapter.MyR
                         Song song = new Song();
                         song.setMusicId(cursor.getString(1));
                         song.setMusicTitle(cursor.getString(2).trim());
+                        song.setDuration(cursor.getString(3));
                         songList.add(song);
                     }
                 }
@@ -141,7 +142,7 @@ public class MusicListFragment extends Fragment implements MyRecyclerAdapter.MyR
 
     @Override
     public void onItemClicked(int position){
-        Log.d("song touched", songList.get(position).getMusicTitle());
+        Log.d("song touched", songList.get(position).getMusicTitle() + ", " + songList.get(position).getDuration());
         mListener.onMusicSelected(songList, position);
         songList = null;
 //        Intent intent = new Intent(getContext(), MusicService.class);

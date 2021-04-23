@@ -7,6 +7,7 @@ public class Song implements Parcelable{
 
     private String musicId;
     private String musicTitle;
+    private String Duration;
 
     public Song() {
     }
@@ -29,6 +30,14 @@ public class Song implements Parcelable{
 
     public void setMusicTitle(String musicTitle) {
         this.musicTitle = musicTitle;
+    }
+
+    public String getDuration() {
+        return Duration;
+    }
+
+    public void setDuration(String duration) {
+        Duration = duration;
     }
 
     @Override

@@ -10,6 +10,14 @@
         android:layout_marginBottom="5dp"
         android:text="Title"/>
 
+    <SeekBar
+        android:id="@+id/music_seek_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:thumb="@drawable/ic_fiber_manual_record_black_24dp"/>
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
@@ -26,10 +34,17 @@
             android:layout_centerHorizontal="true"
             android:drawableTop="@drawable/ic_play_arrow_black_24dp"/>
         <Button
+            android:id="@+id/stop_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:drawableTop="@drawable/ic_pause_black_24dp"
+            android:visibility="gone"/>
+        <Button
             android:id="@+id/next_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toEndOf="@id/play_button"
-            android:drawableTop="@drawable/ic_fast_forward_black_24dp"/>
+            android:drawableTop="@drawable/ic_fast_forward_black_24dp" />
     </RelativeLayout>
 </LinearLayout>

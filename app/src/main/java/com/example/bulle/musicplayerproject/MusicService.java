@@ -4,8 +4,10 @@ import android.app.Service;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.IBinder;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +16,12 @@ public class MusicService extends Service {
 
     private MediaPlayer mediaPlayer;
     private String songId;
-//    private List<Song> songList;
-//    private int nowPosition;
+    private IBinder mBinder = new MyBinder();
+    public class MyBinder extends Binder {
+        public MusicService getService(){
+            return MusicService.this;
+        }
+    }
 
 
     public MusicService() {
@@ -24,16 +30,17 @@ public class MusicService extends Service {
     @Override
     public void onCreate(){
         super.onCreate();
-
-//        songList = new ArrayList<>();
         mediaPlayer = new MediaPlayer();
     }
 
     @Override
     public void onDestroy(){
-        mediaPlayer.stop();
-        mediaPlayer.release();
-        mediaPlayer = null;
+
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
     }
 
     @Override
@@ -41,14 +48,17 @@ public class MusicService extends Service {
 
 //        nowPosition = intent.getExtras().getInt("position");
 //        songList = intent.getParcelableArrayListExtra("list");
-        songId = intent.getStringExtra("songId");
-
-        startMusic();
+//        songId = intent.getStringExtra("songId");
+//
+//        startMusic();
 
         return START_STICKY;
     }
 
-    public void startMusic(){
+    public void startMusic(String songId){
+
+        this.songId = songId;
+
         mediaPlayer.reset();
 
         Uri musicUri = Uri.withAppendedPath(
@@ -59,11 +69,43 @@ public class MusicService extends Service {
         mediaPlayer.start();
     }
 
+    public void stopMusic(){
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+        }
+    }
 
+    public void pauseMusic(){
+        if(mediaPlayer != null){
+            mediaPlayer.pause();
+        }
+    }
+
+    public void moveAndStart(int position){
+        if(mediaPlayer != null) {
+            mediaPlayer.seekTo(position);
+            mediaPlayer.start();
+        }
+    }
+
+    public int getCurrentMusicTime(){
+        if(mediaPlayer != null){
+//            Log.d("now musicPosition : ", "" + mediaPlayer.getCurrentPosition());
+            return mediaPlayer.getCurrentPosition();
+        }
+        return 0;
+    }
+
+    public String getSongId(){
+        if (songId != null) {
+            return songId;
+        }else{
+            return null;
+        }
+    }
 
     @Override
     public IBinder onBind(Intent intent) {
-        // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
+        return mBinder;
     }
 }

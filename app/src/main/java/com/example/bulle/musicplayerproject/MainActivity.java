@@ -1,8 +1,11 @@
 package com.example.bulle.musicplayerproject;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,7 +18,7 @@ import com.gun0912.tedpermission.TedPermission;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements MusicListFragment.OnMusicSelectedListener, MusicListFragment.OnEnrollMusicList{
+public class MainActivity extends AppCompatActivity implements MusicListFragment.OnMusicSelectedListener, MusicListFragment.OnEnrollMusicList, MusicPlayerFragment.OnMusicServiceListener{
 
     private static final int MESSAGE_PERMISSION_GRANTED = 101;
     private static final int MESSAGE_PERMISSION_DENIED = 102;
@@ -23,6 +26,11 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
     private MusicListFragment musicListFragment;
 
     private ArrayList<Song> musicList;
+
+    private MusicService mService;
+    private boolean mBound;
+
+    private boolean music_play_or_stop = true;
 
     public MainHandler mainHandler = new MainHandler();
 
@@ -38,6 +46,39 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
         getSupportFragmentManager().beginTransaction()
                 .add(R.id.fragment_container, musicListFragment).commit();
     }
+
+    @Override
+    protected void onStart(){
+        super.onStart();
+        //서비스에 바인딩
+        Intent intent = new Intent(this, MusicService.class);
+        bindService(intent, mConnection, BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onDestroy(){
+        super.onDestroy();
+        //서비스 연결 해제
+        if(mBound){
+            unbindService(mConnection);
+            mBound = false;
+        }
+    }
+
+    //바인드서비스를 통해 서비스와 연결될 때의 콜백 정의
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.MyBinder binder = (MusicService.MyBinder) service;
+            mService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            //예기치 않은 종료
+        }
+    };
 
     private void showPermissionDialog() {
         PermissionListener permissionlistener = new PermissionListener() {
@@ -62,8 +103,9 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
     }
 
     public void stop_music(View view) {
-        Intent intent = new Intent(this, MusicService.class);
-        stopService(intent);
+//        Intent intent = new Intent(this, MusicService.class);
+//        stopService(intent);
+        mService.stopMusic();
     }
 
     public void onMusicSelected(ArrayList<Song> songList, int position){
@@ -96,6 +138,21 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
         }else {
             return musicList;
         }
+    }
+
+    @Override
+    public MusicService getMusciService() {
+        return mService;
+    }
+
+    @Override
+    public void setMusicState(boolean state) {
+        music_play_or_stop = state;
+    }
+
+    @Override
+    public boolean getMusicState() {
+        return music_play_or_stop;
     }
 
     private class MainHandler extends Handler {
