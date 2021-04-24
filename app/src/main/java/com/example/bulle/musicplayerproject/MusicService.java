@@ -17,6 +17,7 @@ import android.os.IBinder;
 import android.provider.MediaStore;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.view.View;
 import android.widget.RemoteViews;
 
 import java.lang.reflect.Array;
@@ -39,12 +40,14 @@ public class MusicService extends Service {
     private String MUSIC_NOW = "MUSIC_NOW";
     private String MUSIC_NEXT = "MUSIC_NEXT";
     private String MUSIC_CLOSE = "MUSIC_CLOSE";
+    private String MUSIC_PAUSE = "MUSIC_PAUSE";
 
     private IntentFilter musicFilter;
 
     private RemoteViews contentView;
     private NotificationManager notificationManager;
     private NotificationCompat.Builder nBuilder;
+    private Notification notification;
 
     private boolean isActiveNotification = false;
     private boolean isPaused = false;
@@ -69,6 +72,7 @@ public class MusicService extends Service {
         musicFilter.addAction(MUSIC_NOW);
         musicFilter.addAction(MUSIC_NEXT);
         musicFilter.addAction(MUSIC_CLOSE);
+        musicFilter.addAction(MUSIC_PAUSE);
 
         registerReceiver(broadcastReceiver, musicFilter);
 
@@ -113,11 +117,13 @@ public class MusicService extends Service {
             Intent nowIntent = new Intent(MUSIC_NOW);
             Intent nextIntent = new Intent(MUSIC_NEXT);
             Intent closeIntent = new Intent(MUSIC_CLOSE);
+            Intent pauseIntent = new Intent(MUSIC_PAUSE);
 
             PendingIntent pdIntentPrev = PendingIntent.getBroadcast(this, 0, prevIntent, 0);
             PendingIntent pdIntentNow = PendingIntent.getBroadcast(this, 0, nowIntent, 0);
             PendingIntent pdIntentNext = PendingIntent.getBroadcast(this, 0, nextIntent, 0);
             PendingIntent pdIntentClose = PendingIntent.getBroadcast(this, 0, closeIntent, 0);
+            PendingIntent pdIntentPause = PendingIntent.getBroadcast(this, 0, pauseIntent, 0);
 
             contentView.setTextViewText(R.id.notification_title, songList.get(song_position).getMusicTitle());
 
@@ -125,6 +131,7 @@ public class MusicService extends Service {
             contentView.setOnClickPendingIntent(R.id.notification_startButton, pdIntentNow);
             contentView.setOnClickPendingIntent(R.id.notification_nextButton, pdIntentNext);
             contentView.setOnClickPendingIntent(R.id.notification_end, pdIntentClose);
+            contentView.setOnClickPendingIntent(R.id.notification_stopButton, pdIntentPause);
 
             nBuilder = new NotificationCompat.Builder(this, "musicChannel");
             nBuilder.setSmallIcon(R.mipmap.ic_launcher);
@@ -138,8 +145,10 @@ public class MusicService extends Service {
                 notificationManager.createNotificationChannel(new NotificationChannel("musicChannel", "음악 채널", NotificationManager.IMPORTANCE_DEFAULT));
             }
 
+            notification = nBuilder.build();
+
             //포그라운드로 시작
-            startForeground(2127, nBuilder.build());
+            startForeground(2127, notification);
         }
 
         this.songId = songId;
@@ -154,6 +163,13 @@ public class MusicService extends Service {
         mediaPlayer.start();
         isPaused = false;
     }
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+    public void reStartMusic(){
+        if (mediaPlayer != null) {
+            mediaPlayer.start();
+            isPaused = false;
+        }
+    }
 
     public void stopMusic(){
         if (mediaPlayer != null) {
@@ -164,8 +180,8 @@ public class MusicService extends Service {
 
     public void pauseMusic(){
         if(mediaPlayer != null){
-            mediaPlayer.pause();
             isPaused = true;
+            mediaPlayer.pause();
         }
     }
 
@@ -193,6 +209,10 @@ public class MusicService extends Service {
         }
     }
 
+    public void setIsPaused(boolean state){
+        isPaused = state;
+    }
+
     public boolean getIsPaused(){
         return isPaused;
     }
@@ -210,6 +230,24 @@ public class MusicService extends Service {
         return mBinder;
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    public void notificationChange(String state){
+        if (state.equals(MUSIC_PAUSE)){
+            contentView.setViewVisibility(R.id.notification_stopButton, View.GONE);
+            contentView.setViewVisibility(R.id.notification_startButton, View.VISIBLE);
+        } else if(state.equals(MUSIC_NOW)){
+            contentView.setViewVisibility(R.id.notification_startButton, View.INVISIBLE);
+            contentView.setViewVisibility(R.id.notification_stopButton, View.VISIBLE);
+        }else if(state.equals(MUSIC_PREV)){
+            contentView.setTextViewText(R.id.notification_title, songList.get(song_position).getMusicTitle());
+            contentView.setViewVisibility(R.id.notification_startButton, View.INVISIBLE);
+            contentView.setViewVisibility(R.id.notification_stopButton, View.VISIBLE);
+        }
+
+        notification.bigContentView = contentView;
+        startForeground(2127, notification);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -220,8 +258,24 @@ public class MusicService extends Service {
 
                 if (song_position > 0){
                     song_position -= 1;
-                    startMusic(songList.get(song_position).getMusicId());
                 }
+
+                notificationChange(MUSIC_PREV);
+
+                if (getIsPaused() == false){
+                    //멈춰 있지 않는 상태에서
+                    Log.d("Music Service Prev", "걍 이전");
+                    Intent change_state_musicPlayer = new Intent("MUSIC_PLAYER_PREV");
+                    sendBroadcast(change_state_musicPlayer);
+                }else if (getIsPaused() == true){
+                    //멈춰 있는 상태에서
+                    Log.d("Music Service pPrev", "멈춰 있는 상태에서 이전");
+                    Intent change_state_musicPlayer = new Intent("MUSIC_PLAYER_PAUSE_PREV");
+                    sendBroadcast(change_state_musicPlayer);
+                }
+
+                startMusic(songList.get(song_position).getMusicId());
+
             }
             else if(music_action.equals(MUSIC_NEXT)){
                 Log.d("Music notification", "music next");
@@ -230,6 +284,13 @@ public class MusicService extends Service {
             }
             else if(music_action.equals(MUSIC_NOW)){
                 Log.d("Music notification", "music now");
+
+                reStartMusic();
+
+                notificationChange(MUSIC_NOW);
+
+                Intent change_state_musicPlayer = new Intent("MUSIC_PLAYER_START");
+                sendBroadcast(change_state_musicPlayer);
             }
             else if(music_action.equals(MUSIC_CLOSE)){
                 Log.d("Music notification", "music close");
@@ -242,6 +303,15 @@ public class MusicService extends Service {
 
                 Intent closeIntent = new Intent(MUSIC_ACTION_FILTER);
                 sendBroadcast(closeIntent);
+            }
+            else if (music_action.equals(MUSIC_PAUSE)){
+                Log.d("Music notification", "music pause");
+                pauseMusic();
+
+                notificationChange(MUSIC_PAUSE);
+
+                Intent change_state_musicPlayer = new Intent("MUSIC_PLAYER_PAUSE");
+                sendBroadcast(change_state_musicPlayer);
             }
         }
     };

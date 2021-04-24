@@ -78,9 +78,6 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
             MusicService.MyBinder binder = (MusicService.MyBinder) service;
             mService = binder.getService();
             mBound = true;
-            if (musicList != null) {
-                mService.setSongList(musicList);
-            }
         }
 
         @Override
@@ -118,6 +115,11 @@ public class MainActivity extends AppCompatActivity implements MusicListFragment
     }
 
     public void onMusicSelected(ArrayList<Song> songList, int position){
+
+        if (musicList != null) {
+            mService.setSongList(musicList);
+        }
+
         //MusicPlayer 프래그먼트 생성
         MusicPlayerFragment musicPlayerFragment = new MusicPlayerFragment();
         //Argment로 인자 전달
